@@ -1,0 +1,56 @@
+version: "3.9"
+services:
+  yoLight-devel:
+    build:
+      context: .
+      dockerfile: yoLight-devel.dockerfile
+      args:
+        UID: $UID
+        GID: $GID
+    image: yolight-devel:${USER}
+    container_name: yolight_${USER}-devel
+    shm_size: '64G'
+    ipc: "host"
+    user: $UID:$GID
+    volumes:
+      - ".:/home/torch/YoLight:rw"
+      - "/mnt/ssdvd1/skadaveru/yoLight/pretrain:/home/torch/YoLight/pretrain:rw"
+      - "/mnt/ssdvd1/skadaveru/yoLight/logs:/home/torch/YoLight/logs:rw"
+      - "/mnt/ssdvd1/skadaveru/yoLight/data:/home/torch/YoLight/data:rw"
+      - "vscode-config:/home/torch/.vscode-server:rw"
+    # environment:
+    #   - CUDA_VISIBLE_DEVICES=1,2,3
+    deploy:
+     resources:
+       reservations:
+         devices:
+           - driver: nvidia
+             count: "all"
+             capabilities: [gpu]
+    working_dir: "/home/torch/YoLight"
+    # command: ["jupyter", "notebook"]
+    command: ["tail", "-f", "/dev/null"]
+  
+  tensorboard:
+    image: nvcr.io/nvidia/tensorflow:22.07-tf2-py3
+    container_name: tensorboard-yolight_${USER}
+    ipc: "host"
+    user: $UID:$GID
+    network_mode: "host"
+    volumes:
+      - "./runs/infer:/var/YoLight/log:rw"
+      # - "vscode-config:/home/torch/.vscode-server:rw"
+    deploy:
+     resources:
+       reservations:
+         devices:
+           - driver: nvidia
+             count: "all"
+             capabilities: [gpu]
+    working_dir: "/var/YoLight/"
+    command: "tensorboard --bind_all --logdir='log/exp6/tblog'"
+    # command: ["tail", "-f", "/dev/null"]
+
+volumes:
+  vscode-config:
+    driver: local

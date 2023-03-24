@@ -1,0 +1,6 @@
+.vscode/**
+data/**
+log/**
+runs/**
+pretrain/**
+**/__pycache__
