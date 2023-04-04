@@ -14,12 +14,16 @@ from yolov7.utils.datasets import LoadStreams, LoadImages
 from yolov7.utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from yolov7.utils.plots import plot_one_box
-from yolov7.utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
+from yolov7.utils.torch_utils import select_device, intersect_dicts, load_classifier, time_synchronized, TracedModel
+from yolov7.models.yolo import Model
 
 from src.utils.logger import TBLogger
 from src.utils.register_activation import register_activation_hook, define_test_hook
 
+from src.utils.guided_backprop import Guided_backprop
+
 activations = {};
+gradients = {};
 
 def detect(save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
@@ -35,14 +39,21 @@ def detect(save_img=False):
     
     # Load model
     
-    model = attempt_load(weights, map_location=device)  # load FP32 model
+    # model = attempt_load(weights, map_location=device)  # load FP32 model
+    ckpt = torch.load(weights[0], map_location=device)  # load checkpoint
+    model = Model(ckpt['model'].yaml).to(device)  # create
+    exclude = []  # exclude keys
+    state_dict = ckpt['model'].float().state_dict()  # to FP32
+    state_dict = intersect_dicts(state_dict, model.state_dict(), exclude=exclude)  # intersect
+    model.load_state_dict(state_dict, strict=False)  # load
+    for k, v in model.named_parameters():
+        v.requires_grad = True  # train all layers
+    
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
 
-    filename = os.path.basename(model.yaml_file);
+    filename = os.path.basename(ckpt['model'].yaml_file);
     model_name = os.path.splitext(filename)[0];
-    register_activation_hook(activations,model,model_name,'');
-    test_hook = define_test_hook(activations,tblogger,device);
     
     # Set Dataloader
     dataset = LoadImages(source, img_size=imgsz, stride=stride)
@@ -51,10 +62,25 @@ def detect(save_img=False):
     names = model.module.names if hasattr(model, 'module') else model.names
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
+    path, img, im0s, vid_cap = next(iter(dataset));
+    img = torch.from_numpy(img).to(device)
+    img = img.float()  # uint8 to fp16/32
+    img /= 255.0  # 0 - 255 to 0.0 - 1.0
+    if img.ndimension() == 3:
+        img = img.unsqueeze(0)
+    # tblogger.add_graph(model,img,verbose=True);
     
-    isfirst=True;
-    for path, img, im0s, vid_cap in dataset:
-            
+    # Register hooks
+    guided_bp = Guided_backprop(model,lambda x: non_max_suppression(x, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms),
+                                nc=ckpt['model'].nc)
+    
+    register_activation_hook(activations,gradients,model,model_name,'');
+    test_hook = define_test_hook(activations,gradients,tblogger,device);
+    
+    
+    for bi, (path, img, im0s, vid_cap) in enumerate(dataset):
+        # model.train();
+        
         img = torch.from_numpy(img).to(device)
         img = img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -64,15 +90,14 @@ def detect(save_img=False):
 
         with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
             pred = model(img, augment=opt.augment)[0]
-
-        if isfirst:
-            tblogger.add_graph(model,img,verbose=True);
-            test_hook(img.unsqueeze(0),step=0);
-            isfirst=False;
+                
+        # torch.autograd.set_detect_anomaly(True)
+        grad_img = guided_bp.visualize(img,None);
+        test_hook(img,grad_img,step=0,batch_indx=bi);
         
         
         # Apply NMS
-        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
+        pred,_ = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
