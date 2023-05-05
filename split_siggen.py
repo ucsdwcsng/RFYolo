@@ -1,6 +1,7 @@
+import os
 import argparse
 
-from src.datagen.multiChannelSpectrum import *
+from src.datagen.multiChannelSpectrum import segment_largeiq
 
 
 

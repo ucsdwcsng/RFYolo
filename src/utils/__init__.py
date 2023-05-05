@@ -9,3 +9,5 @@ from .find_files import *
 from .wrapToPi import *
 
 from .guided_backprop import *
+
+from .mag2db import *

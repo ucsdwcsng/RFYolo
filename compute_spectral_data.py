@@ -1,7 +1,9 @@
+import os
+import torch
 import argparse
 
-from src.datagen.multiChannelSpectrum import *
-
+from src.datagen.multiChannelSpectrum import spectralData
+from src.datagen import get_fcfs
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -18,7 +20,7 @@ def main(opt):
     mfft=1024;
     window_fn=torch.blackman_window;
     overlapf=1;
-    k=10;
+    k=24;
     
     cls = opt.cls;
     if cls:
@@ -29,14 +31,9 @@ def main(opt):
     for d in dirs:        
         print(f"Dir: {d}");
         subdatadir = f'{datadir}/{d}';
-        
-        iqfiles = [f for f in os.listdir(subdatadir) if f.endswith(".32cf")];
-        iqfile=iqfiles[0];
-        fname, _ = os.path.splitext(iqfile);
-        
-        metafile=f'{fname}.json';
                 
-        fc,fs = load_dataset_param(subdatadir,metafile);
+        fc,fs = get_fcfs(subdatadir);
+        
         spectralGenerator = spectralData(subdatadir,fs=fs, 
                                                     nstft=nstft,
                                                     mfft=mfft,

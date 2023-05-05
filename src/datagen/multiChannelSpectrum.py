@@ -12,7 +12,8 @@ import json
 
 import math
 
-from src.utils import wrap_to_pi, mkdir
+from src.utils import wrap_to_pi, mkdir, Mag2DB
+from .load_meta import load_dataset_param
 
 import matplotlib.colors as colors
 import matplotlib.cm as cm
@@ -142,10 +143,12 @@ class boxData:
 
 
 class spectralData(spectralView):    
-    def __init__(self, datadir, **kwargs) -> None:
+    def __init__(self, datadir, cScale=None, isLog=False, **kwargs) -> None:
         super().__init__(**kwargs);
         self.datadir = datadir;
-    
+        self.cScale = cScale;
+        self.isLog = isLog;
+        
     def generate_spectral_data(self):
         
         fext = ".32cf"
@@ -153,6 +156,9 @@ class spectralData(spectralView):
         
         mkdir(f'{self.datadir}/spectrum');
         
+        cmap = cm.get_cmap('jet');        
+        normalise = colors.Normalize(self.cScale[0],self.cScale[1]) if self.cScale else colors.Normalize();
+                
         i=0;
         for f in iqfiles:
             fname, _ = os.path.splitext(f);
@@ -175,14 +181,20 @@ class spectralData(spectralView):
             ca = self.angSpectrum_cor();
             nca = self.angSpectrum_nom_cor();
             
-            cmap = cm.get_cmap('jet');
+            if self.isLog:
+                s = Mag2DB(Mag2DB);
+                a = Mag2DB(Mag2DB);
+                na = Mag2DB(Mag2DB);
+                maa = Mag2DB(Mag2DB);
+                ca = Mag2DB(Mag2DB);
+                nca = Mag2DB(Mag2DB);
             
-            s_cmap = np.transpose(cmap(colors.Normalize()(s.cpu().numpy()))*255,(1,0,2));
-            a_cmap = np.transpose(cmap(colors.Normalize()(a.cpu().numpy()))*255,(1,0,2));
-            maa_cmap = np.transpose(cmap(colors.Normalize()(maa.cpu().numpy()))*255,(1,0,2));
-            na_cmap = np.transpose(cmap(colors.Normalize()(na.cpu().numpy()))*255,(1,0,2));
-            ca_cmap = np.transpose(cmap(colors.Normalize()(ca.cpu().numpy()))*255,(1,0,2));
-            nca_cmap = np.transpose(cmap(colors.Normalize()(nca.cpu().numpy()))*255,(1,0,2));
+            s_cmap = np.transpose(cmap(normalise(s.cpu().numpy()))*255,(1,0,2));
+            a_cmap = np.transpose(cmap(normalise(a.cpu().numpy()))*255,(1,0,2));
+            maa_cmap = np.transpose(cmap(normalise(maa.cpu().numpy()))*255,(1,0,2));
+            na_cmap = np.transpose(cmap(normalise(na.cpu().numpy()))*255,(1,0,2));
+            ca_cmap = np.transpose(cmap(normalise(ca.cpu().numpy()))*255,(1,0,2));
+            nca_cmap = np.transpose(cmap(normalise(nca.cpu().numpy()))*255,(1,0,2));
             
             img_s = Image.fromarray(np.uint8(s_cmap[:, :, :3]));
             img_a = Image.fromarray(np.uint8(a_cmap[:, :, :3]));
@@ -295,14 +307,6 @@ def parseMetadata(datadir, metafile):
     
     return boxes;
             
-    
-def load_dataset_param(datadir,metafile):
-    with open(f'{datadir}/{metafile}','r') as metafd:
-        meta = json.load(metafd);
-        fs = meta['txVec']['samplingRate_Hz'];
-        fc = meta['rxObj']['freqCenter_Hz'];
-    
-    return fc,fs;
     
 def process_recursive(self):
     
