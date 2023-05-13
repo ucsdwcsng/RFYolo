@@ -1,0 +1,170 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "train_test_val-split",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/train_test_val-split.py",
+            "args": [
+                "--datadir=data/fullSpectrum/QAM/",
+                "--file=all.s.txt"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "compute_spectral_data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/compute_spectral_data.py",
+            "args": [
+                "--datadir=data/SigGenData/",
+                "--cls=qam4"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "compute_energypeak_data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/compute_energypeak_data.py",
+            "args": [
+                "--datadir=data/QAM/",
+                "--cls=qam4"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "YOLOv7_detect",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/yolov7/detect.py",
+            "args": [
+                // "--weights=./pretrain/yolov7/yolov7-tiny.pt", 
+                "--weights=./runs/train/QAM.s2/weights/best.pt", 
+                "--conf=0.25",
+                "--img-size=1024",
+                "--no-trace",
+                // "--agnostic-nms",
+                // "--source=yolov7/inference/images/horses.jpg"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "YOLOv7_test",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/yolov7/test.py",
+            "args": [
+                // "--weights=./pretrain/yolov7/yolov7-tiny.pt", 
+                "--weights=./runs/train/DSSS-QAM.k1/weights/best.pt", 
+                "--data=./data/DSSS-QAM/DSSS-QAM.k1.yaml",
+                "--img-size=1024",
+                "--conf-thres=0.25",
+                // "--iou-thres=0.25",
+                "--name=DSSS-QAM.k1",
+                "--task=test",
+                "--device=1",
+                "--single-cls",
+                "--verbose",
+                "--save-txt",
+                "--save-conf",
+                "--no-trace",
+                // "--agnostic-nms",
+                // "--source=yolov7/inference/images/horses.jpg"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "inference",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/inference.py",
+            "args": [
+                "--weights=./runs/train/QAM.a/weights/best.pt", 
+                "--conf=0.25",
+                "--img-size=1024",
+                "--agnostic-nms",
+                "--source=data/QAM/qam4/spectrum/sc.qam4.d1_531.a.png"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "YOLOv7_train",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/yolov7/train.py",
+            "args": [
+                "--weights=", 
+                // "--freeze=50",
+                "--img-size=1024",
+                "--rect",
+                "--workers=8",
+                "--epochs=10",
+                "--device=0,1,2,3",
+                "--batch-size=32",
+                "--data=data/FSK2/FSK2.s.yaml",
+                "--cfg=yolov7/cfg/training/yolov7-tiny.yaml",
+                "--name=FSK2.s",
+                "--hyp=yolov7/data/hyp.scratch.tiny.yaml"
+            ],
+            // "env": {
+            //     "CUDA_VISIBLE_DEVICES": "2"
+            // },
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "plot_data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/yolov7/plot_data.py",
+            "args": [
+                "--indx=7", 
+                // "--freeze=50",
+                "--img-size=1024",
+                "--data=data/FSK2ota/SigGenData.s.yaml",
+                "--cfg=yolov7/cfg/training/yolov7-tiny.yaml",
+                "--name=yolov7-tiny-s",
+                "--hyp=yolov7/data/hyp.scratch.tiny.yaml"
+            ],
+            // "env": {
+            //     "CUDA_VISIBLE_DEVICES": "2"
+            // },
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "generate_label_data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/generate_label_data.py",
+            "args": [
+                "--datadir=data/SigGenData/"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "split_siggen",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/split_siggen.py",
+            "args": [
+                "--datadir=data/SigGenData/",
+                "--cls=cpfsk"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
